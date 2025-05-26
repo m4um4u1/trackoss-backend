@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=trackossdb'
+      - 'POSTGRES_PASSWORD=trackoss_password'
+      - 'POSTGRES_USER=trackoss_user'
+    ports:
+      - '5432'
