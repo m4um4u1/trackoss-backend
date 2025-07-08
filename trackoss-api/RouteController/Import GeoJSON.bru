@@ -1,0 +1,94 @@
+meta {
+  name: Import GeoJSON
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/api/routes/import/geojson
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "routeName": "Green Lake Cycling Loop",
+    "geoJsonData": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-122.3321, 47.6781]
+          },
+          "properties": {
+            "name": "Green Lake Park Start",
+            "pointType": "START_POINT",
+            "elevation": 15
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-122.3341, 47.6791]
+          },
+          "properties": {
+            "pointType": "TRACK_POINT",
+            "elevation": 18
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-122.3361, 47.6801]
+          },
+          "properties": {
+            "name": "North End",
+            "description": "Good rest spot with benches",
+            "pointType": "WAYPOINT",
+            "elevation": 20
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-122.3381, 47.6791]
+          },
+          "properties": {
+            "pointType": "TRACK_POINT",
+            "elevation": 18
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-122.3321, 47.6781]
+          },
+          "properties": {
+            "name": "Back to Start",
+            "pointType": "END_POINT",
+            "elevation": 15
+          }
+        }
+      ]
+    }
+  }
+}
+
+tests {
+  test("Status should be 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response should have route data", function() {
+    const route = res.getBody();
+    expect(route.id).to.be.a('number');
+    expect(route.name).to.equal('Green Lake Cycling Loop');
+    expect(route.points).to.be.an('array');
+  });
+}

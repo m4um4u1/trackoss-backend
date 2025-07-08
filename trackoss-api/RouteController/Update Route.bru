@@ -1,0 +1,33 @@
+meta {
+  name: Update Route
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/routes/{{routeId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Lake Washington Loop - Updated",
+    "description": "An updated scenic cycling route around Lake Washington with improved waypoints",
+    "routeType": "ROAD_CYCLING",
+    "isPublic": true
+  }
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Route should be updated", function() {
+    const route = res.getBody();
+    expect(route.name).to.equal("Lake Washington Loop - Updated");
+    expect(route.description).to.contain("updated");
+    expect(route.routeType).to.equal("ROAD_CYCLING");
+  });
+}

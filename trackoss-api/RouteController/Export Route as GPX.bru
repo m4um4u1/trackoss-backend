@@ -1,0 +1,48 @@
+meta {
+  name: Export Route as GPX
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/routes/{{routeId}}/export/gpx
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/gpx+xml
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Content-Type should be GPX", function() {
+    expect(res.getHeader('Content-Type')).to.contain('application/gpx+xml');
+  });
+  
+  test("Response should contain GPX XML", function() {
+    const body = res.getBody();
+    expect(body).to.contain('<?xml');
+    expect(body).to.contain('<gpx');
+  });
+}
+
+docs {
+  Exports a cycling route as a GPX file for use with navigation and fitness apps.
+  
+  The GPX file includes:
+  - Track points with coordinates and elevation
+  - Waypoints with names and descriptions
+  - Route metadata optimized for cycling
+  
+  Compatible with cycling apps:
+  - OsmAnd (Android/iOS navigation)
+  - Komoot (cycling route planning)
+  - Garmin Edge devices and Garmin Connect
+  - Wahoo ELEMNT cycling computers
+  - Strava route planning and navigation
+  - Ride with GPS
+}

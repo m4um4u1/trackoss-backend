@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TrackOSS" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Burke-Gilman Trail Sample</name>
+    <desc>A sample cycling route for testing GPX import</desc>
+  </metadata>
+  <trk>
+    <name>Burke-Gilman Trail</name>
+    <desc>Popular cycling trail in Seattle</desc>
+    <trkseg>
+      <trkpt lat="47.6815" lon="-122.2654">
+        <ele>15</ele>
+        <name>Fremont Start</name>
+      </trkpt>
+      <trkpt lat="47.6825" lon="-122.2644">
+        <ele>18</ele>
+      </trkpt>
+      <trkpt lat="47.6835" lon="-122.2634">
+        <ele>20</ele>
+        <name>Gas Works Park</name>
+      </trkpt>
+      <trkpt lat="47.6845" lon="-122.2624">
+        <ele>22</ele>
+      </trkpt>
+      <trkpt lat="47.6855" lon="-122.2614">
+        <ele>25</ele>
+        <name>University Bridge</name>
+      </trkpt>
+    </trkseg>
+  </trk>
+  <wpt lat="47.6835" lon="-122.2634">
+    <ele>20</ele>
+    <name>Gas Works Park</name>
+    <desc>Great view of downtown Seattle</desc>
+  </wpt>
+</gpx>

@@ -1,0 +1,21 @@
+meta {
+  name: Delete Route
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{baseUrl}}/api/routes/{{routeId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("Status should be 204", function() {
+    expect(res.getStatus()).to.equal(204);
+  });
+}
+
+docs {
+  Warning: This will permanently delete the route. Use with caution!
+}

@@ -1,0 +1,77 @@
+meta {
+  name: Create Route
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/routes
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Lake Washington Loop",
+    "description": "A scenic cycling route around Lake Washington with beautiful views",
+    "routeType": "CYCLING",
+    "isPublic": true,
+    "points": [
+      {
+        "latitude": 47.6062,
+        "longitude": -122.3321,
+        "elevation": 50.0,
+        "pointType": "START_POINT",
+        "name": "Seward Park Start"
+      },
+      {
+        "latitude": 47.5872,
+        "longitude": -122.2651,
+        "elevation": 45.0,
+        "pointType": "TRACK_POINT"
+      },
+      {
+        "latitude": 47.5542,
+        "longitude": -122.2001,
+        "elevation": 60.0,
+        "pointType": "WAYPOINT",
+        "name": "Renton Bridge",
+        "description": "Great view of the lake"
+      },
+      {
+        "latitude": 47.6292,
+        "longitude": -122.1851,
+        "elevation": 75.0,
+        "pointType": "TRACK_POINT"
+      },
+      {
+        "latitude": 47.6762,
+        "longitude": -122.2421,
+        "elevation": 55.0,
+        "pointType": "WAYPOINT",
+        "name": "Kirkland Waterfront",
+        "description": "Rest stop with cafes"
+      },
+      {
+        "latitude": 47.6462,
+        "longitude": -122.3021,
+        "elevation": 50.0,
+        "pointType": "END_POINT",
+        "name": "Back to Seward Park"
+      }
+    ]
+  }
+}
+
+tests {
+  test("Status should be 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response should have route ID", function() {
+    expect(res.getBody().id).to.be.a('number');
+  });
+  
+  // Store route ID for other requests
+  bru.setVar("routeId", res.getBody().id);
+}

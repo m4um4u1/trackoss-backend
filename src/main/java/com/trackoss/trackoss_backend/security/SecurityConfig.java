@@ -17,6 +17,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
                                 .requestMatchers("/api/map-proxy/**").permitAll() // Disable security for this endpoint
+                                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**", "/swagger-ui.html").permitAll() // Allow Swagger UI access
                                 .anyRequest().authenticated()
                 )
                 .csrf(AbstractHttpConfigurer::disable); // Disable CSRF for simplicity, but consider enabling it in production

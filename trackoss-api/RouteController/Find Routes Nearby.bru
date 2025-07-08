@@ -1,0 +1,23 @@
+meta {
+  name: Find Routes Nearby
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/routes/nearby?latitude=47.6062&longitude=-122.3321&radiusKm=10&page=0&size=10
+  body: none
+  auth: none
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response should have paginated data", function() {
+    const response = res.getBody();
+    expect(response.content).to.be.an('array');
+    expect(response.totalElements).to.be.a('number');
+  });
+}
