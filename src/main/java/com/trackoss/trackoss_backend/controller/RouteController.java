@@ -28,6 +28,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -148,22 +151,20 @@ public class RouteController {
     })
     public ResponseEntity<byte[]> exportToGpx(
             @Parameter(description = "Route unique identifier", required = true) @PathVariable UUID id) {
-        return routeService.getRoute(id)
-                .map(routeResponse -> {
+        return routeService.getRouteEntityForExport(id)
+                .map(route -> {
                     try {
-                        // Convert response back to entity for export (in real app, you'd fetch entity directly)
-                        Route route = convertToEntity(routeResponse);
                         byte[] gpxData = gpxService.exportToGpx(route);
-                        
+
                         HttpHeaders headers = new HttpHeaders();
                         headers.setContentType(MediaType.APPLICATION_XML);
-                        headers.setContentDispositionFormData("attachment", 
-                                sanitizeFilename(routeResponse.getName()) + ".gpx");
-                        
+                        headers.setContentDispositionFormData("attachment",
+                                sanitizeFilename(route.getName()) + ".gpx");
+
                         return ResponseEntity.ok()
                                 .headers(headers)
                                 .body(gpxData);
-                                
+
                     } catch (IOException e) {
                         log.error("Error exporting route to GPX", e);
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).<byte[]>build();
@@ -186,21 +187,20 @@ public class RouteController {
     })
     public ResponseEntity<String> exportToGeoJson(
             @Parameter(description = "Route unique identifier", required = true) @PathVariable UUID id) {
-        return routeService.getRoute(id)
-                .map(routeResponse -> {
+        return routeService.getRouteEntityForExport(id)
+                .map(route -> {
                     try {
-                        Route route = convertToEntity(routeResponse);
                         String geoJsonData = geoJsonService.exportToGeoJson(route);
-                        
+
                         HttpHeaders headers = new HttpHeaders();
                         headers.setContentType(MediaType.APPLICATION_JSON);
-                        headers.setContentDispositionFormData("attachment", 
-                                sanitizeFilename(routeResponse.getName()) + ".geojson");
-                        
+                        headers.setContentDispositionFormData("attachment",
+                                sanitizeFilename(route.getName()) + ".geojson");
+
                         return ResponseEntity.ok()
                                 .headers(headers)
                                 .body(geoJsonData);
-                                
+
                     } catch (IOException e) {
                         log.error("Error exporting route to GeoJSON", e);
                         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).<String>build();
@@ -347,5 +347,23 @@ public class RouteController {
         }
         
         return route;
+    }
+    
+    /**
+     * Calculate distance between two points using Haversine formula
+     */
+    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        final double EARTH_RADIUS_KM = 6371.0;
+        
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        
+        return EARTH_RADIUS_KM * c * 1000; // Convert to meters
     }
 }

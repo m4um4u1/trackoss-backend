@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -137,8 +136,13 @@ public class GpxService {
             request.setName("Imported Route");
         }
         
-        // Set description - skip for now due to API compatibility
-        // TODO: Fix description extraction from GPX metadata
+        // Set description from metadata
+        if (gpx.getMetadata().isPresent() && gpx.getMetadata().get().getDescription().isPresent()) {
+            request.setDescription(gpx.getMetadata().get().getDescription().get());
+        }
+        
+        // Try to extract statistics from GPX metadata or track extensions
+        extractStatisticsFromGpx(gpx, request);
         
         // Process tracks
         for (Track track : gpx.getTracks()) {
@@ -218,5 +222,37 @@ public class GpxService {
         
         log.info("Successfully imported route with {} points", points.size());
         return request;
+    }
+    
+    /**
+     * Extract statistics from GPX metadata or extensions if available
+     */
+    private void extractStatisticsFromGpx(GPX gpx, RouteCreateRequest request) {
+        // Try to extract from metadata extensions (common in Garmin, Strava exports)
+        if (gpx.getMetadata().isPresent()) {
+            Metadata metadata = gpx.getMetadata().get();
+            
+            // Some GPX files store total distance in metadata
+            // This is not standard but some apps do it
+            if (metadata.getExtensions().isPresent()) {
+                // Extensions parsing would require XML parsing
+                // For now, we'll skip this and rely on calculation
+                log.debug("GPX metadata extensions found but not parsed for statistics");
+            }
+        }
+        
+        // Try to extract from track extensions
+        for (Track track : gpx.getTracks()) {
+            if (track.getExtensions().isPresent()) {
+                // Track extensions might contain total distance, elevation gain
+                // This would require custom XML parsing
+                log.debug("GPX track extensions found but not parsed for statistics");
+            }
+        }
+        
+        // Note: Most GPX files don't contain pre-calculated statistics
+        // They typically only contain raw track points with lat/lon/elevation/time
+        // Statistics are usually calculated by the importing application
+        log.debug("No pre-calculated statistics found in GPX, will calculate from track points");
     }
 }

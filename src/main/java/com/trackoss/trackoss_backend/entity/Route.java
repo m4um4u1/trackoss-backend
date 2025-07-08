@@ -21,7 +21,6 @@ import java.util.UUID;
 public class Route {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     
     @Column(nullable = false)
@@ -57,8 +56,8 @@ public class Route {
     @Column(name = "is_public")
     private Boolean isPublic = false;
     
-    @Column(columnDefinition = "jsonb")
-    private String metadata; // JSON for flexible additional data
+    @Column(columnDefinition = "TEXT")
+    private String metadata;
     
     @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @OrderBy("sequenceOrder ASC")
@@ -74,9 +73,6 @@ public class Route {
         HIKING,
         RUNNING,
         WALKING,
-        DRIVING,
-        MOTORCYCLE,
-        PUBLIC_TRANSPORT,
         OTHER
     }
     

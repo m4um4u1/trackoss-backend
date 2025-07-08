@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TrackOSS Test" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Test Route for Unit Testing</name>
+    <desc>A sample cycling route for testing GPX import functionality</desc>
+    <author>
+      <name>TrackOSS Test Suite</name>
+    </author>
+    <time>2025-01-10T10:00:00Z</time>
+  </metadata>
+  
+  <!-- Waypoints for points of interest -->
+  <wpt lat="47.6815" lon="-122.2654">
+    <ele>15</ele>
+    <name>Test Start Point</name>
+    <desc>Starting point for test route</desc>
+    <type>START</type>
+  </wpt>
+  
+  <wpt lat="47.6835" lon="-122.2634">
+    <ele>20</ele>
+    <name>Test Waypoint</name>
+    <desc>Intermediate waypoint</desc>
+    <type>WAYPOINT</type>
+  </wpt>
+  
+  <wpt lat="47.6855" lon="-122.2614">
+    <ele>25</ele>
+    <name>Test End Point</name>
+    <desc>End point for test route</desc>
+    <type>END</type>
+  </wpt>
+  
+  <!-- Track with multiple segments -->
+  <trk>
+    <name>Test Track</name>
+    <desc>Main track for testing</desc>
+    <type>cycling</type>
+    
+    <trkseg>
+      <trkpt lat="47.6815" lon="-122.2654">
+        <ele>15</ele>
+        <time>2025-01-10T10:00:00Z</time>
+      </trkpt>
+      <trkpt lat="47.6820" lon="-122.2649">
+        <ele>16</ele>
+        <time>2025-01-10T10:01:00Z</time>
+      </trkpt>
+      <trkpt lat="47.6825" lon="-122.2644">
+        <ele>18</ele>
+        <time>2025-01-10T10:02:00Z</time>
+      </trkpt>
+      <trkpt lat="47.6830" lon="-122.2639">
+        <ele>19</ele>
+        <time>2025-01-10T10:03:00Z</time>
+      </trkpt>
+      <trkpt lat="47.6835" lon="-122.2634">
+        <ele>20</ele>
+        <time>2025-01-10T10:04:00Z</time>
+      </trkpt>
+    </trkseg>
+    
+    <trkseg>
+      <trkpt lat="47.6840" lon="-122.2629">
+        <ele>21</ele>
+        <time>2025-01-10T10:05:00Z</time>
+      </trkpt>
+      <trkpt lat="47.6845" lon="-122.2624">
+        <ele>22</ele>
+        <time>2025-01-10T10:06:00Z</time>
+      </trkpt>
+      <trkpt lat="47.6850" lon="-122.2619">
+        <ele>24</ele>
+        <time>2025-01-10T10:07:00Z</time>
+      </trkpt>
+      <trkpt lat="47.6855" lon="-122.2614">
+        <ele>25</ele>
+        <time>2025-01-10T10:08:00Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+  
+  <!-- Route for navigation -->
+  <rte>
+    <name>Test Route</name>
+    <desc>Navigation route for testing</desc>
+    
+    <rtept lat="47.6815" lon="-122.2654">
+      <ele>15</ele>
+      <name>Route Start</name>
+      <desc>Start of navigation route</desc>
+    </rtept>
+    <rtept lat="47.6835" lon="-122.2634">
+      <ele>20</ele>
+      <name>Route Waypoint</name>
+      <desc>Turn point</desc>
+    </rtept>
+    <rtept lat="47.6855" lon="-122.2614">
+      <ele>25</ele>
+      <name>Route End</name>
+      <desc>End of navigation route</desc>
+    </rtept>
+  </rte>
+</gpx>

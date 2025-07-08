@@ -5,9 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/routes/{{routeId}}/export/geojson
+  url: {{baseUrl}}/api/routes/:id/export/geojson
   body: none
   auth: none
+}
+
+params:path {
+  id: 272b5a2d-c66a-4533-8f30-963f49c7f145
 }
 
 headers {

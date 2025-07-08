@@ -157,6 +157,17 @@ public class GeoJsonService {
                     // Keep default
                 }
             }
+            
+            // Extract pre-calculated statistics if available
+            if (properties.has("totalDistance")) {
+                request.setTotalDistance(properties.get("totalDistance").asDouble());
+            }
+            if (properties.has("totalElevationGain")) {
+                request.setTotalElevationGain(properties.get("totalElevationGain").asDouble());
+            }
+            if (properties.has("estimatedDuration")) {
+                request.setEstimatedDuration(properties.get("estimatedDuration").asLong());
+            }
         }
         
         // Process geometry
