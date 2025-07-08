@@ -1,0 +1,51 @@
+meta {
+  name: Import GPX File
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/routes/import/gpx
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  file: @file(sample_route.gpx)
+  routeName: Burke-Gilman Trail Import
+}
+
+tests {
+  test("Status should be 201", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+  
+  test("Response should have route data", function() {
+    const route = res.getBody();
+    expect(route.id).to.be.a('number');
+    expect(route.name).to.equal('Burke-Gilman Trail Import');
+    expect(route.points).to.be.an('array');
+  });
+}
+
+docs {
+  Note: You need to have a sample GPX file named 'sample_route.gpx' in the same directory as this request.
+  
+  Sample GPX content:
+  ```xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <gpx version="1.1" creator="TrackOSS">
+    <trk>
+      <name>Sample Track</name>
+      <trkseg>
+        <trkpt lat="47.6062" lon="-122.3321">
+          <ele>100</ele>
+        </trkpt>
+        <trkpt lat="47.6072" lon="-122.3331">
+          <ele>150</ele>
+        </trkpt>
+      </trkseg>
+    </trk>
+  </gpx>
+  ```
+}

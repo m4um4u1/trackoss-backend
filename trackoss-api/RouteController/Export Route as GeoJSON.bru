@@ -1,0 +1,48 @@
+meta {
+  name: Export Route as GeoJSON
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/routes/{{routeId}}/export/geojson
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test("Status should be 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Content-Type should be JSON", function() {
+    expect(res.getHeader('Content-Type')).to.contain('application/json');
+  });
+  
+  test("Response should be valid GeoJSON", function() {
+    const geoJson = res.getBody();
+    expect(geoJson.type).to.equal('FeatureCollection');
+    expect(geoJson.features).to.be.an('array');
+  });
+}
+
+docs {
+  Exports a cycling route as GeoJSON for web mapping and API integration.
+  
+  The GeoJSON includes:
+  - Feature collection with route points
+  - Point geometries with coordinates
+  - Properties with cycling-specific metadata
+  - Elevation data for route profiling
+  
+  Perfect for integration with:
+  - Web mapping libraries (Leaflet, Mapbox, OpenLayers)
+  - Cycling club websites
+  - Route sharing platforms
+  - Custom cycling applications
+  - GIS analysis tools
+}
