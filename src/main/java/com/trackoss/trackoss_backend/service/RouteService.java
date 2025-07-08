@@ -26,12 +26,13 @@ public class RouteService {
     
     private final RouteRepository routeRepository;
     private final RoutePointRepository routePointRepository;
-    private final RouteCalculationService routeCalculationService;
+    private final RouteStatisticsService routeStatisticsService;
     
     public RouteResponse createRoute(RouteCreateRequest request) {
         log.info("Creating new route: {}", request.getName());
         
         Route route = new Route();
+        route.setId(UUID.randomUUID()); // Set UUID manually
         route.setName(request.getName());
         route.setDescription(request.getDescription());
         route.setRouteType(request.getRouteType());
@@ -43,6 +44,7 @@ public class RouteService {
                 .mapToObj(i -> {
                     RouteCreateRequest.RoutePointRequest pointReq = request.getPoints().get(i);
                     RoutePoint point = new RoutePoint();
+                    point.setId(UUID.randomUUID()); // Set UUID manually
                     point.setSequenceOrder(i);
                     point.setLatitude(pointReq.getLatitude());
                     point.setLongitude(pointReq.getLongitude());
@@ -57,8 +59,19 @@ public class RouteService {
         
         route.setRoutePoints(points);
         
-        // Calculate route statistics
-        routeCalculationService.calculateRouteStatistics(route);
+        // Set pre-calculated statistics if provided, otherwise calculate them
+        if (request.getTotalDistance() != null) {
+            route.setTotalDistance(request.getTotalDistance());
+        }
+        if (request.getTotalElevationGain() != null) {
+            route.setTotalElevationGain(request.getTotalElevationGain());
+        }
+        if (request.getEstimatedDuration() != null) {
+            route.setEstimatedDuration(request.getEstimatedDuration());
+        }
+        
+        // Calculate missing statistics
+        routeStatisticsService.calculateMissingStatistics(route);
         
         Route savedRoute = routeRepository.save(route);
         log.info("Route created with ID: {}", savedRoute.getId());
@@ -70,6 +83,17 @@ public class RouteService {
     public Optional<RouteResponse> getRoute(UUID id) {
         return routeRepository.findById(id)
                 .map(this::convertToResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Route> getRouteEntityForExport(UUID id) {
+        // Fetch route with eager loading of route points for export
+        return routeRepository.findById(id)
+                .map(route -> {
+                    // Force loading of route points to avoid lazy loading issues
+                    route.getRoutePoints().size();
+                    return route;
+                });
     }
     
     @Transactional(readOnly = true)
@@ -128,7 +152,7 @@ public class RouteService {
         route.getRoutePoints().addAll(points);
         
         // Recalculate route statistics
-        routeCalculationService.calculateRouteStatistics(route);
+        routeStatisticsService.calculateRouteStatistics(route);
         
         Route savedRoute = routeRepository.save(route);
         log.info("Route updated: {}", savedRoute.getId());

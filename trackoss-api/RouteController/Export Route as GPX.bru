@@ -5,9 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/routes/{{routeId}}/export/gpx
+  url: {{baseUrl}}/api/routes/:id/export/gpx
   body: none
   auth: none
+}
+
+params:path {
+  id: 0e115daf-5ce5-4c10-95ae-4bc6b618ac8a
 }
 
 headers {

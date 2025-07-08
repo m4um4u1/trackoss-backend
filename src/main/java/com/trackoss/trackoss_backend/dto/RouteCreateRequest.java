@@ -40,6 +40,16 @@ public class RouteCreateRequest {
             example = "{\"surface\": \"asphalt\", \"difficulty\": 3, \"traffic\": \"low\"}")
     private String metadata; // JSON string for additional data
     
+    // Optional pre-calculated statistics (if available from import)
+    @Schema(description = "Total distance in meters (optional, calculated if not provided)", example = "50000.0")
+    private Double totalDistance;
+    
+    @Schema(description = "Total elevation gain in meters (optional, calculated if not provided)", example = "1200.0")
+    private Double totalElevationGain;
+    
+    @Schema(description = "Estimated duration in seconds (optional, calculated if not provided)", example = "10800")
+    private Long estimatedDuration;
+    
     @Data
     @Schema(description = "Individual point on the cycling route")
     public static class RoutePointRequest {
@@ -58,8 +68,8 @@ public class RouteCreateRequest {
         @Schema(description = "Description of the point", example = "Good place for water refill")
         private String description;
         
-        @Schema(description = "Type of point", example = "TRACK_POINT", 
-                allowableValues = {"WAYPOINT", "TRACK_POINT", "ROUTE_POINT"})
-        private String pointType = "TRACK_POINT"; // WAYPOINT, TRACK_POINT, ROUTE_POINT
+        @Schema(description = "Type of point", example = "TRACK_POINT",
+                allowableValues = {"WAYPOINT", "TRACK_POINT", "ROUTE_POINT", "START_POINT", "END_POINT"})
+        private String pointType = "TRACK_POINT"; // WAYPOINT, TRACK_POINT, ROUTE_POINT, START_POINT, END_POINT
     }
 }

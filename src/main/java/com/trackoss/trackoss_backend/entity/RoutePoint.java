@@ -17,7 +17,6 @@ import java.util.UUID;
 public class RoutePoint {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -50,6 +49,8 @@ public class RoutePoint {
     public enum PointType {
         WAYPOINT,      // Named points of interest
         TRACK_POINT,   // GPS track points
-        ROUTE_POINT    // Calculated route points
+        ROUTE_POINT,   // Calculated route points
+        START_POINT,   // Starting point of the route
+        END_POINT      // Ending point of the route
     }
 }

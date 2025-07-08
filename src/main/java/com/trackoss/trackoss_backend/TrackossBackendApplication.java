@@ -18,7 +18,7 @@ public class TrackossBackendApplication {
     public RestTemplate restTemplate() {
         return new RestTemplate();
     }
-    
+
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
