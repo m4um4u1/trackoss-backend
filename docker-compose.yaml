@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: 'postgis/postgis:16-3.4-alpine'
+    container_name: trackoss-postgres
+    environment:
+      - 'POSTGRES_DB=trackossdb'
+      - 'POSTGRES_PASSWORD=trackoss_password'
+      - 'POSTGRES_USER=trackoss_user'
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - trackoss-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trackoss_user -d trackossdb"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trackoss-backend
+    environment:
+      # Database configuration for containerized environment
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/trackossdb
+      - SPRING_DATASOURCE_USERNAME=trackoss_user
+      - SPRING_DATASOURCE_PASSWORD=trackoss_password
+      
+      # Optional: Map tile service API key
+      - MAPTILE_SERVICE_API_KEY=dummy_key
+      
+      # Production optimizations
+      - SPRING_JPA_SHOW_SQL=false
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB=INFO
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    ports:
+      - '8080:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - trackoss-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/routes"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  trackoss-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

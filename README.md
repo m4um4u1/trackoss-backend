@@ -22,10 +22,10 @@ A Spring Boot backend service for managing cycling routes with GPS track data, f
 ## Quick Start
 
 ### Prerequisites
-- Java 17+
-- Docker or Podman (for database)
+- Java 17+ (for local development)
+- Docker or Podman
 
-### Setup
+### Development Setup
 ```bash
 # Clone the repository
 git clone https://github.com/m4um4u1/trackoss-backend.git
@@ -36,6 +36,19 @@ docker compose up -d
 
 # Run the application
 ./gradlew bootRun
+```
+
+### Docker Deployment
+```bash
+# Clone the repository
+git clone https://github.com/m4um4u1/trackoss-backend.git
+cd trackoss-backend
+
+# Start the full application stack (database + backend)
+docker-compose up -d
+
+# Or build and start with logs
+docker-compose up --build
 ```
 
 The application starts on `http://localhost:8080`
@@ -74,6 +87,33 @@ spring.datasource.password=trackoss_password
 maptile.service.target-base-url=https://api.maptiler.com/maps
 maptile.service.api.key=${MAPTILE_SERVICE_API_KEY:dummy_key}
 ```
+
+## Docker
+
+### Container Images
+The application can be containerized using the provided Dockerfile:
+
+```bash
+# Build the Docker image
+docker build -t trackoss-backend .
+
+# Run with external database
+docker run -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/trackossdb \
+  -e SPRING_DATASOURCE_USERNAME=trackoss_user \
+  -e SPRING_DATASOURCE_PASSWORD=trackoss_password \
+  trackoss-backend
+```
+
+### Compose Files
+- **`compose.yaml`**: Development dependencies (PostgreSQL only)
+- **`docker-compose.yaml`**: Full deployment (PostgreSQL + Backend)
+
+### Environment Variables
+- `MAPTILE_SERVICE_API_KEY`: API key for map tile service (optional)
+- `SPRING_DATASOURCE_URL`: Database connection URL
+- `SPRING_DATASOURCE_USERNAME`: Database username
+- `SPRING_DATASOURCE_PASSWORD`: Database password
 
 ## Development
 
