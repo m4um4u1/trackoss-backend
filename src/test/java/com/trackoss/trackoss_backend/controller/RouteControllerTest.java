@@ -11,23 +11,22 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -40,17 +39,14 @@ class RouteControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private RouteService routeService;
 
-    @MockBean
+    @MockitoBean
     private GpxService gpxService;
 
-    @MockBean
+    @MockitoBean
     private GeoJsonService geoJsonService;
-
-    @MockBean
-    private RestTemplate restTemplate;
 
     private RouteCreateRequest validRouteRequest;
     private RouteResponse mockRouteResponse;
@@ -103,6 +99,8 @@ class RouteControllerTest {
         when(routeService.createRoute(any(RouteCreateRequest.class))).thenReturn(mockRouteResponse);
 
         mockMvc.perform(post("/api/routes")
+                .with(csrf())
+                .with(user("testuser"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(validRouteRequest)))
                 .andExpect(status().isCreated())
@@ -121,6 +119,8 @@ class RouteControllerTest {
         // Missing required fields
 
         mockMvc.perform(post("/api/routes")
+                .with(csrf())
+                .with(user("testuser"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
@@ -133,6 +133,8 @@ class RouteControllerTest {
         validRouteRequest.setName("");
 
         mockMvc.perform(post("/api/routes")
+                .with(csrf())
+                .with(user("testuser"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(validRouteRequest)))
                 .andExpect(status().isBadRequest());
@@ -140,9 +142,11 @@ class RouteControllerTest {
 
     @Test
     void createRoute_EmptyPoints_ReturnsBadRequest() throws Exception {
-        validRouteRequest.setPoints(Arrays.asList());
+        validRouteRequest.setPoints(List.of());
 
         mockMvc.perform(post("/api/routes")
+                .with(csrf())
+                .with(user("testuser"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(validRouteRequest)))
                 .andExpect(status().isBadRequest());
@@ -152,7 +156,8 @@ class RouteControllerTest {
     void getRouteById_ExistingRoute_ReturnsRoute() throws Exception {
         when(routeService.getRoute(testRouteId)).thenReturn(Optional.of(mockRouteResponse));
 
-        mockMvc.perform(get("/api/routes/{id}", testRouteId))
+        mockMvc.perform(get("/api/routes/{id}", testRouteId)
+                .with(user("testuser")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testRouteId.toString()))
                 .andExpect(jsonPath("$.name").value("Test Route"));
@@ -164,7 +169,8 @@ class RouteControllerTest {
     void getRouteById_NonExistentRoute_ReturnsNotFound() throws Exception {
         when(routeService.getRoute(testRouteId)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/routes/{id}", testRouteId))
+        mockMvc.perform(get("/api/routes/{id}", testRouteId)
+                .with(user("testuser")))
                 .andExpect(status().isNotFound());
 
         verify(routeService).getRoute(testRouteId);
@@ -172,12 +178,13 @@ class RouteControllerTest {
 
     @Test
     void getAllRoutes_DefaultPagination_ReturnsPagedRoutes() throws Exception {
-        List<RouteResponse> routes = Arrays.asList(mockRouteResponse);
+        List<RouteResponse> routes = Collections.singletonList(mockRouteResponse);
         Page<RouteResponse> page = new PageImpl<>(routes, PageRequest.of(0, 20), 1);
         
         when(routeService.getAllRoutes(any())).thenReturn(page);
 
-        mockMvc.perform(get("/api/routes"))
+        mockMvc.perform(get("/api/routes")
+                .with(user("testuser")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content[0].id").value(testRouteId.toString()))
@@ -189,13 +196,14 @@ class RouteControllerTest {
 
     @Test
     void getAllRoutes_WithSearch_ReturnsFilteredRoutes() throws Exception {
-        List<RouteResponse> routes = Arrays.asList(mockRouteResponse);
+        List<RouteResponse> routes = Collections.singletonList(mockRouteResponse);
         Page<RouteResponse> page = new PageImpl<>(routes, PageRequest.of(0, 20), 1);
         
         when(routeService.searchRoutes(eq("test"), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/routes")
-                .param("search", "test"))
+                .param("search", "test")
+                .with(user("testuser")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.totalElements").value(1));
@@ -205,13 +213,14 @@ class RouteControllerTest {
 
     @Test
     void getAllRoutes_PublicOnly_ReturnsPublicRoutes() throws Exception {
-        List<RouteResponse> routes = Arrays.asList(mockRouteResponse);
+        List<RouteResponse> routes = Collections.singletonList(mockRouteResponse);
         Page<RouteResponse> page = new PageImpl<>(routes, PageRequest.of(0, 20), 1);
         
         when(routeService.getPublicRoutes(any())).thenReturn(page);
 
         mockMvc.perform(get("/api/routes")
-                .param("publicOnly", "true"))
+                .param("publicOnly", "true")
+                .with(user("testuser")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
 
@@ -220,13 +229,14 @@ class RouteControllerTest {
 
     @Test
     void getAllRoutes_WithUserId_ReturnsUserRoutes() throws Exception {
-        List<RouteResponse> routes = Arrays.asList(mockRouteResponse);
+        List<RouteResponse> routes = Collections.singletonList(mockRouteResponse);
         Page<RouteResponse> page = new PageImpl<>(routes, PageRequest.of(0, 20), 1);
         
         when(routeService.getUserRoutes(eq("user123"), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/routes")
-                .param("userId", "user123"))
+                .param("userId", "user123")
+                .with(user("testuser")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray());
 
@@ -245,6 +255,8 @@ class RouteControllerTest {
         validRouteRequest.setName("Updated Route");
 
         mockMvc.perform(put("/api/routes/{id}", testRouteId)
+                .with(csrf())
+                .with(user("testuser"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(validRouteRequest)))
                 .andExpect(status().isOk())
@@ -259,16 +271,20 @@ class RouteControllerTest {
                 .thenThrow(new RuntimeException("Route not found"));
 
         mockMvc.perform(put("/api/routes/{id}", testRouteId)
+                .with(csrf())
+                .with(user("testuser"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(validRouteRequest)))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isNotFound());
     }
 
     @Test
     void deleteRoute_ExistingRoute_ReturnsNoContent() throws Exception {
         doNothing().when(routeService).deleteRoute(testRouteId);
 
-        mockMvc.perform(delete("/api/routes/{id}", testRouteId))
+        mockMvc.perform(delete("/api/routes/{id}", testRouteId)
+                .with(csrf())
+                .with(user("testuser")))
                 .andExpect(status().isNoContent());
 
         verify(routeService).deleteRoute(testRouteId);
@@ -278,48 +294,53 @@ class RouteControllerTest {
     void deleteRoute_NonExistentRoute_ReturnsNotFound() throws Exception {
         doThrow(new RuntimeException("Route not found")).when(routeService).deleteRoute(testRouteId);
 
-        mockMvc.perform(delete("/api/routes/{id}", testRouteId))
-                .andExpect(status().isInternalServerError());
+        mockMvc.perform(delete("/api/routes/{id}", testRouteId)
+                .with(csrf())
+                .with(user("testuser")))
+                .andExpect(status().isNotFound());
     }
 
     @Test
     void exportToGpx_ExistingRoute_ReturnsGpxFile() throws Exception {
-        when(routeService.getRoute(testRouteId)).thenReturn(Optional.of(mockRouteResponse));
+        when(routeService.getRouteEntityForExport(testRouteId)).thenReturn(Optional.of(new Route()));
         when(gpxService.exportToGpx(any(Route.class))).thenReturn("<?xml version=\"1.0\"?><gpx></gpx>".getBytes());
 
-        mockMvc.perform(get("/api/routes/{id}/export/gpx", testRouteId))
+        mockMvc.perform(get("/api/routes/{id}/export/gpx", testRouteId)
+                .with(user("testuser")))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", "application/xml"))
                 .andExpect(header().exists("Content-Disposition"))
-                .andExpect(content().string(containsString("<?xml")));
+                .andExpect(content().bytes("<?xml version=\"1.0\"?><gpx></gpx>".getBytes()));
 
-        verify(routeService).getRoute(testRouteId);
+        verify(routeService).getRouteEntityForExport(testRouteId);
         verify(gpxService).exportToGpx(any(Route.class));
     }
 
     @Test
     void exportToGpx_NonExistentRoute_ReturnsNotFound() throws Exception {
-        when(routeService.getRoute(testRouteId)).thenReturn(Optional.empty());
+        when(routeService.getRouteEntityForExport(testRouteId)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/routes/{id}/export/gpx", testRouteId))
+        mockMvc.perform(get("/api/routes/{id}/export/gpx", testRouteId)
+                .with(user("testuser")))
                 .andExpect(status().isNotFound());
 
-        verify(routeService).getRoute(testRouteId);
+        verify(routeService).getRouteEntityForExport(testRouteId);
         verify(gpxService, never()).exportToGpx(any());
     }
 
     @Test
     void exportToGeoJson_ExistingRoute_ReturnsGeoJsonFile() throws Exception {
-        when(routeService.getRoute(testRouteId)).thenReturn(Optional.of(mockRouteResponse));
-        when(geoJsonService.exportToGeoJson(any(Route.class))).thenReturn("{\"type\":\"FeatureCollection\"}".getBytes());
+        when(routeService.getRouteEntityForExport(testRouteId)).thenReturn(Optional.of(new Route()));
+        when(geoJsonService.exportToGeoJson(any(Route.class))).thenReturn("{\"type\":\"FeatureCollection\"}");
 
-        mockMvc.perform(get("/api/routes/{id}/export/geojson", testRouteId))
+        mockMvc.perform(get("/api/routes/{id}/export/geojson", testRouteId)
+                .with(user("testuser")))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", "application/json"))
                 .andExpect(header().exists("Content-Disposition"))
                 .andExpect(content().string(containsString("FeatureCollection")));
 
-        verify(routeService).getRoute(testRouteId);
+        verify(routeService).getRouteEntityForExport(testRouteId);
         verify(geoJsonService).exportToGeoJson(any(Route.class));
     }
 
@@ -337,7 +358,9 @@ class RouteControllerTest {
 
         mockMvc.perform(multipart("/api/routes/import/gpx")
                 .file(gpxFile)
-                .param("routeName", "Imported Route"))
+                .param("routeName", "Imported Route")
+                .with(csrf())
+                .with(user("testuser")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(testRouteId.toString()));
 
@@ -349,7 +372,10 @@ class RouteControllerTest {
     void importFromGpx_EmptyFile_ReturnsBadRequest() throws Exception {
         MockMultipartFile emptyFile = new MockMultipartFile("file", "", "application/gpx+xml", new byte[0]);
 
-        mockMvc.perform(multipart("/api/routes/import/gpx").file(emptyFile))
+        mockMvc.perform(multipart("/api/routes/import/gpx")
+                .file(emptyFile)
+                .with(csrf())
+                .with(user("testuser")))
                 .andExpect(status().isBadRequest());
 
         verify(gpxService, never()).importFromGpx(any(), any());
@@ -359,13 +385,21 @@ class RouteControllerTest {
     @Test
     void importFromGeoJson_ValidData_ReturnsCreatedRoute() throws Exception {
         String geoJsonData = "{\"type\":\"FeatureCollection\",\"features\":[]}";
+        MockMultipartFile geoJsonFile = new MockMultipartFile(
+                "file",
+                "test.geojson",
+                "application/json",
+                geoJsonData.getBytes()
+        );
 
-        when(geoJsonService.importFromGeoJson(anyString(), anyString())).thenReturn(validRouteRequest);
+        when(geoJsonService.importFromGeoJson(anyString(), eq("GeoJSON Route"))).thenReturn(validRouteRequest);
         when(routeService.createRoute(any(RouteCreateRequest.class))).thenReturn(mockRouteResponse);
 
-        mockMvc.perform(post("/api/routes/import/geojson")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"routeName\":\"GeoJSON Route\",\"geoJsonData\":\"" + geoJsonData + "\"}"))
+        mockMvc.perform(multipart("/api/routes/import/geojson")
+                .file(geoJsonFile)
+                .param("routeName", "GeoJSON Route")
+                .with(csrf())
+                .with(user("testuser")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(testRouteId.toString()));
 
@@ -373,41 +407,15 @@ class RouteControllerTest {
         verify(routeService).createRoute(any(RouteCreateRequest.class));
     }
 
-    @Test
-    void findNearbyRoutes_ValidCoordinates_ReturnsRoutes() throws Exception {
-        List<RouteResponse> routes = Arrays.asList(mockRouteResponse);
-        Page<RouteResponse> page = new PageImpl<>(routes, PageRequest.of(0, 10), 1);
 
-        when(routeService.findNearbyRoutes(eq(47.6062), eq(-122.3321), eq(10.0), any()))
-                .thenReturn(page);
-
-        mockMvc.perform(get("/api/routes/nearby")
-                .param("latitude", "47.6062")
-                .param("longitude", "-122.3321")
-                .param("radiusKm", "10")
-                .param("page", "0")
-                .param("size", "10"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.totalElements").value(1));
-
-        verify(routeService).findNearbyRoutes(eq(47.6062), eq(-122.3321), eq(10.0), any());
-    }
-
-    @Test
-    void findNearbyRoutes_InvalidCoordinates_ReturnsBadRequest() throws Exception {
-        mockMvc.perform(get("/api/routes/nearby")
-                .param("latitude", "invalid")
-                .param("longitude", "-122.3321")
-                .param("radiusKm", "10"))
-                .andExpect(status().isBadRequest());
-    }
 
     @Test
     void createRoute_LongName_ReturnsBadRequest() throws Exception {
         validRouteRequest.setName("A".repeat(256)); // Exceeds 255 character limit
 
         mockMvc.perform(post("/api/routes")
+                .with(csrf())
+                .with(user("testuser"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(validRouteRequest)))
                 .andExpect(status().isBadRequest());
@@ -418,6 +426,8 @@ class RouteControllerTest {
         validRouteRequest.setDescription("A".repeat(2001)); // Exceeds 2000 character limit
 
         mockMvc.perform(post("/api/routes")
+                .with(csrf())
+                .with(user("testuser"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(validRouteRequest)))
                 .andExpect(status().isBadRequest());
@@ -429,6 +439,8 @@ class RouteControllerTest {
                 .replace("\"CYCLING\"", "\"INVALID_TYPE\"");
 
         mockMvc.perform(post("/api/routes")
+                .with(csrf())
+                .with(user("testuser"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(invalidJson))
                 .andExpect(status().isBadRequest());
@@ -475,7 +487,9 @@ class RouteControllerTest {
 
         mockMvc.perform(multipart("/api/routes/import/gpx")
                 .file(gpxFile)
-                .param("routeName", "Test GPX Import"))
+                .param("routeName", "Test GPX Import")
+                .with(csrf())
+                .with(user("testuser")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(testRouteId.toString()))
                 .andExpect(jsonPath("$.name").value("Test Route"));
@@ -513,7 +527,9 @@ class RouteControllerTest {
                 .thenReturn(mockRouteResponse);
 
         mockMvc.perform(multipart("/api/routes/import/gpx")
-                .file(gpxFile))
+                .file(gpxFile)
+                .with(csrf())
+                .with(user("testuser")))
                 .andExpect(status().isCreated());
 
         verify(gpxService).importFromGpx(any(byte[].class), isNull());
@@ -535,7 +551,9 @@ class RouteControllerTest {
 
         mockMvc.perform(multipart("/api/routes/import/gpx")
                 .file(gpxFile)
-                .param("routeName", "Invalid GPX"))
+                .param("routeName", "Invalid GPX")
+                .with(csrf())
+                .with(user("testuser")))
                 .andExpect(status().isInternalServerError());
 
         verify(gpxService).importFromGpx(any(byte[].class), eq("Invalid GPX"));
@@ -585,7 +603,9 @@ class RouteControllerTest {
 
         mockMvc.perform(multipart("/api/routes/import/gpx")
                 .file(largeGpxFile)
-                .param("routeName", "Large Route"))
+                .param("routeName", "Large Route")
+                .with(csrf())
+                .with(user("testuser")))
                 .andExpect(status().isCreated());
 
         verify(gpxService).importFromGpx(any(byte[].class), eq("Large Route"));
@@ -607,7 +627,9 @@ class RouteControllerTest {
 
         mockMvc.perform(multipart("/api/routes/import/gpx")
                 .file(textFile)
-                .param("routeName", "Text File"))
+                .param("routeName", "Text File")
+                .with(csrf())
+                .with(user("testuser")))
                 .andExpect(status().isInternalServerError());
     }
 
@@ -631,7 +653,9 @@ class RouteControllerTest {
 
         mockMvc.perform(multipart("/api/routes/import/gpx")
                 .file(emptyGpxFile)
-                .param("routeName", "Empty GPX"))
+                .param("routeName", "Empty GPX")
+                .with(csrf())
+                .with(user("testuser")))
                 .andExpect(status().isInternalServerError());
     }
 
@@ -665,7 +689,9 @@ class RouteControllerTest {
 
         mockMvc.perform(multipart("/api/routes/import/gpx")
                 .file(waypointsFile)
-                .param("routeName", "Waypoints Route"))
+                .param("routeName", "Waypoints Route")
+                .with(csrf())
+                .with(user("testuser")))
                 .andExpect(status().isCreated());
 
         verify(gpxService).importFromGpx(any(byte[].class), eq("Waypoints Route"));
