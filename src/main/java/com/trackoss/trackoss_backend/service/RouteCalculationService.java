@@ -94,30 +94,20 @@ public class RouteCalculationService {
             case HIKING -> 4.0;
             case RUNNING -> 10.0;
             case WALKING -> 3.0;
-            case DRIVING -> 50.0;
-            case MOTORCYCLE -> 60.0;
             default -> 25.0; // Default to cycling
         };
         
         // Adjust for elevation gain
         double adjustedDistance = distanceKm;
         switch (route.getRouteType()) {
-            case HIKING, WALKING -> {
-                // Naismith's rule: Add 1 hour for every 600m of elevation gain
-                adjustedDistance += elevationGainKm * 1000 / 600 * baseSpeed;
-            }
-            case CYCLING, MOUNTAIN_BIKING, GRAVEL -> {
-                // Cycling: Add time for elevation gain (less impact than hiking)
-                adjustedDistance += elevationGainKm * 1000 / 1000 * baseSpeed; // 1 hour per 1000m gain
-            }
-            case ROAD_CYCLING -> {
-                // Road cycling: Minimal elevation impact due to higher speeds
-                adjustedDistance += elevationGainKm * 1000 / 1500 * baseSpeed; // 1 hour per 1500m gain
-            }
-            case E_BIKE -> {
-                // E-bike: Very minimal elevation impact
-                adjustedDistance += elevationGainKm * 1000 / 2000 * baseSpeed; // 1 hour per 2000m gain
-            }
+            case HIKING, WALKING -> // Naismith's rule: Add 1 hour for every 600m of elevation gain
+                    adjustedDistance += elevationGainKm * 1000 / 600 * baseSpeed;
+            case CYCLING, MOUNTAIN_BIKING, GRAVEL -> // Cycling: Add time for elevation gain (less impact than hiking)
+                    adjustedDistance += elevationGainKm * 1000 / 1000 * baseSpeed; // 1 hour per 1000m gain
+            case ROAD_CYCLING -> // Road cycling: Minimal elevation impact due to higher speeds
+                    adjustedDistance += elevationGainKm * 1000 / 1500 * baseSpeed; // 1 hour per 1500m gain
+            case E_BIKE -> // E-bike: Very minimal elevation impact
+                    adjustedDistance += elevationGainKm * 1000 / 2000 * baseSpeed; // 1 hour per 2000m gain
         }
         
         // Calculate duration in seconds
