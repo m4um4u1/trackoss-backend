@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -695,5 +696,165 @@ class RouteControllerTest {
                 .andExpect(status().isCreated());
 
         verify(gpxService).importFromGpx(any(byte[].class), eq("Waypoints Route"));
+    }
+
+    // Tests for new endpoints added for Swagger documentation improvements
+
+    @Test
+    void findNearbyRoutes_InvalidLatitude_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/routes/nearby")
+                .param("latitude", "91.0") // Invalid latitude > 90
+                .param("longitude", "-122.3321")
+                .param("radiusKm", "10")
+                .with(user("testuser")))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void findNearbyRoutes_InvalidLongitude_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/routes/nearby")
+                .param("latitude", "47.6062")
+                .param("longitude", "181.0") // Invalid longitude > 180
+                .param("radiusKm", "10")
+                .with(user("testuser")))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void findNearbyRoutes_InvalidRadius_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/routes/nearby")
+                .param("latitude", "47.6062")
+                .param("longitude", "-122.3321")
+                .param("radiusKm", "-5") // Negative radius
+                .with(user("testuser")))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void findNearbyRoutes_MissingParameters_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/routes/nearby")
+                .param("latitude", "47.6062")
+                .with(user("testuser")))
+                // Missing longitude and radiusKm
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getPublicRoutes_ReturnsOnlyPublicRoutes() throws Exception {
+        List<RouteResponse> publicRoutes = Arrays.asList(mockRouteResponse);
+        Page<RouteResponse> page = new PageImpl<>(publicRoutes, PageRequest.of(0, 20), 1);
+
+        when(routeService.getPublicRoutes(any())).thenReturn(page);
+
+        mockMvc.perform(get("/api/routes/public")
+                .with(user("testuser")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[0].isPublic").value(true))
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        verify(routeService).getPublicRoutes(any());
+    }
+
+    @Test
+    void getPublicRoutes_WithPagination_ReturnsCorrectPage() throws Exception {
+        List<RouteResponse> publicRoutes = Arrays.asList(mockRouteResponse);
+        Page<RouteResponse> page = new PageImpl<>(publicRoutes, PageRequest.of(1, 5), 10);
+
+        when(routeService.getPublicRoutes(any())).thenReturn(page);
+
+        mockMvc.perform(get("/api/routes/public")
+                .param("page", "1")
+                .param("size", "5")
+                .with(user("testuser")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.totalElements").value(10))
+                .andExpect(jsonPath("$.number").value(1))
+                .andExpect(jsonPath("$.size").value(5));
+
+        verify(routeService).getPublicRoutes(any());
+    }
+
+    @Test
+    void importFromGeoJsonRaw_ValidData_ReturnsCreatedRoute() throws Exception {
+        String geoJsonData = """
+            {
+              "type": "FeatureCollection",
+              "features": [
+                {
+                  "type": "Feature",
+                  "geometry": {
+                    "type": "Point",
+                    "coordinates": [-122.3321, 47.6062]
+                  },
+                  "properties": {
+                    "pointType": "START_POINT",
+                    "elevation": 15
+                  }
+                }
+              ]
+            }
+            """;
+
+        when(geoJsonService.importFromGeoJson(eq(geoJsonData), eq("Raw Import Route")))
+                .thenReturn(validRouteRequest);
+        when(routeService.createRoute(any(RouteCreateRequest.class)))
+                .thenReturn(mockRouteResponse);
+
+        mockMvc.perform(post("/api/routes/import/geojson/raw")
+                .param("routeName", "Raw Import Route")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(geoJsonData)
+                .with(csrf())
+                .with(user("testuser")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(testRouteId.toString()));
+
+        verify(geoJsonService).importFromGeoJson(eq(geoJsonData), eq("Raw Import Route"));
+        verify(routeService).createRoute(any(RouteCreateRequest.class));
+    }
+
+    @Test
+    void importFromGeoJsonRaw_WithoutRouteName_UsesDefault() throws Exception {
+        String geoJsonData = """
+            {
+              "type": "FeatureCollection",
+              "features": []
+            }
+            """;
+
+        when(geoJsonService.importFromGeoJson(eq(geoJsonData), isNull()))
+                .thenReturn(validRouteRequest);
+        when(routeService.createRoute(any(RouteCreateRequest.class)))
+                .thenReturn(mockRouteResponse);
+
+        mockMvc.perform(post("/api/routes/import/geojson/raw")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(geoJsonData)
+                .with(csrf())
+                .with(user("testuser")))
+                .andExpect(status().isCreated());
+
+        verify(geoJsonService).importFromGeoJson(eq(geoJsonData), isNull());
+    }
+
+    @Test
+    void importFromGeoJsonRaw_InvalidGeoJson_ReturnsError() throws Exception {
+        String invalidGeoJson = "{ invalid json }";
+
+        when(geoJsonService.importFromGeoJson(eq(invalidGeoJson), anyString()))
+                .thenThrow(new IOException("Invalid GeoJSON format"));
+
+        mockMvc.perform(post("/api/routes/import/geojson/raw")
+                .param("routeName", "Invalid Route")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(invalidGeoJson)
+                .with(csrf())
+                .with(user("testuser")))
+                .andExpect(status().isBadRequest());
+
+        verify(geoJsonService).importFromGeoJson(eq(invalidGeoJson), eq("Invalid Route"));
+        verify(routeService, never()).createRoute(any());
     }
 }

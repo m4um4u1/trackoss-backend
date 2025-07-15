@@ -71,7 +71,8 @@ public class RouteController {
         description = "Retrieves a paginated list of cycling routes with optional search and filtering capabilities."
     )
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Routes retrieved successfully"),
+        @ApiResponse(responseCode = "200", description = "Routes retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = Page.class))),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<Page<RouteResponse>> getAllRoutes(
@@ -94,7 +95,52 @@ public class RouteController {
         
         return ResponseEntity.ok(routes);
     }
-    
+
+    @GetMapping("/public")
+    @Operation(
+        summary = "Get all public routes",
+        description = "Retrieves a paginated list of all publicly visible cycling routes."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Public routes retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = Page.class))),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<Page<RouteResponse>> getPublicRoutes(
+            @Parameter(description = "Pagination parameters") @PageableDefault(size = 20) Pageable pageable) {
+        Page<RouteResponse> routes = routeService.getPublicRoutes(pageable);
+        return ResponseEntity.ok(routes);
+    }
+
+    @GetMapping("/nearby")
+    @Operation(
+        summary = "Find routes nearby a location",
+        description = "Finds cycling routes within a specified radius of a given location using spatial search."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Nearby routes found",
+                    content = @Content(schema = @Schema(implementation = Page.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid coordinates or radius"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<Page<RouteResponse>> findNearbyRoutes(
+            @Parameter(description = "Latitude coordinate", required = true, example = "47.6062")
+            @RequestParam Double latitude,
+            @Parameter(description = "Longitude coordinate", required = true, example = "-122.3321")
+            @RequestParam Double longitude,
+            @Parameter(description = "Search radius in kilometers", required = true, example = "10.0")
+            @RequestParam Double radiusKm,
+            @Parameter(description = "Pagination parameters") @PageableDefault(size = 20) Pageable pageable) {
+
+        // Validate coordinates
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180 || radiusKm <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Page<RouteResponse> routes = routeService.findNearbyRoutes(latitude, longitude, radiusKm, pageable);
+        return ResponseEntity.ok(routes);
+    }
+
     @GetMapping("/{id}")
     @Operation(
         summary = "Get route by ID",
@@ -108,15 +154,27 @@ public class RouteController {
     public ResponseEntity<RouteResponse> getRoute(
             @Parameter(description = "Route unique identifier", required = true) @PathVariable UUID id) {
         return routeService.getRoute(id)
-                .map(route -> ResponseEntity.ok(route))
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
     
     @PutMapping("/{id}")
+    @Operation(
+        summary = "Update an existing cycling route",
+        description = "Updates an existing cycling route with new metadata, points, and route information. " +
+                     "This will replace all existing route points with the new ones provided."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Route updated successfully",
+                    content = @Content(schema = @Schema(implementation = RouteResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid request data"),
+        @ApiResponse(responseCode = "404", description = "Route not found"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     public ResponseEntity<RouteResponse> updateRoute(
-            @PathVariable UUID id,
-            @Valid @RequestBody RouteCreateRequest request) {
-        
+            @Parameter(description = "Route unique identifier", required = true) @PathVariable UUID id,
+            @Parameter(description = "Updated route data", required = true) @Valid @RequestBody RouteCreateRequest request) {
+
         try {
             RouteResponse response = routeService.updateRoute(id, request);
             return ResponseEntity.ok(response);
@@ -126,7 +184,18 @@ public class RouteController {
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRoute(@PathVariable UUID id) {
+    @Operation(
+        summary = "Delete a cycling route",
+        description = "Permanently deletes a cycling route and all its associated route points. " +
+                     "This action cannot be undone."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Route deleted successfully"),
+        @ApiResponse(responseCode = "404", description = "Route not found"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<Void> deleteRoute(
+            @Parameter(description = "Route unique identifier", required = true) @PathVariable UUID id) {
         try {
             routeService.deleteRoute(id);
             return ResponseEntity.noContent().build();
@@ -284,16 +353,27 @@ public class RouteController {
     }
     
     @PostMapping("/import/geojson/raw")
+    @Operation(
+        summary = "Import route from raw GeoJSON data",
+        description = "Imports a cycling route from raw GeoJSON data sent in the request body. " +
+                     "Useful for direct API integration without file upload."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Route imported successfully",
+                    content = @Content(schema = @Schema(implementation = RouteResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Invalid GeoJSON data"),
+        @ApiResponse(responseCode = "500", description = "Error processing GeoJSON data")
+    })
     public ResponseEntity<RouteResponse> importFromGeoJsonRaw(
-            @RequestBody String geoJsonData,
-            @RequestParam(required = false) String routeName) {
-        
+            @Parameter(description = "Raw GeoJSON data as string", required = true) @RequestBody String geoJsonData,
+            @Parameter(description = "Optional custom name for the route") @RequestParam(required = false) String routeName) {
+
         try {
             RouteCreateRequest request = geoJsonService.importFromGeoJson(geoJsonData, routeName);
             RouteResponse response = routeService.createRoute(request);
-            
+
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-            
+
         } catch (IOException e) {
             log.error("Error importing GeoJSON data", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
