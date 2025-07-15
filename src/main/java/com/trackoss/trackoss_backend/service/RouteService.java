@@ -25,7 +25,6 @@ import java.util.stream.IntStream;
 public class RouteService {
     
     private final RouteRepository routeRepository;
-    private final RoutePointRepository routePointRepository;
     private final RouteStatisticsService routeStatisticsService;
     
     public RouteResponse createRoute(RouteCreateRequest request) {
@@ -117,6 +116,12 @@ public class RouteService {
     @Transactional(readOnly = true)
     public Page<RouteResponse> searchRoutes(String name, Pageable pageable) {
         return routeRepository.findByNameContainingIgnoreCase(name, pageable)
+                .map(this::convertToResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<RouteResponse> findNearbyRoutes(Double latitude, Double longitude, Double radiusKm, Pageable pageable) {
+        return routeRepository.findNearbyRoutes(latitude, longitude, radiusKm, pageable)
                 .map(this::convertToResponse);
     }
     
