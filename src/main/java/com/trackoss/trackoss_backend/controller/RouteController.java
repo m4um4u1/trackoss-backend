@@ -79,11 +79,33 @@ public class RouteController {
             @Parameter(description = "Pagination parameters") @PageableDefault(size = 20) Pageable pageable,
             @Parameter(description = "Search term for route name or description") @RequestParam(required = false) String search,
             @Parameter(description = "Filter by user ID") @RequestParam(required = false) String userId,
-            @Parameter(description = "Show only public routes") @RequestParam(required = false, defaultValue = "false") boolean publicOnly) {
+            @Parameter(description = "Show only public routes") @RequestParam(required = false, defaultValue = "false") boolean publicOnly,
+            @Parameter(description = "Filter by difficulty level (1-5)") @RequestParam(required = false) Integer difficulty,
+            @Parameter(description = "Filter by route type") @RequestParam(required = false) Route.RouteType routeType,
+            @Parameter(description = "Filter by minimum distance in meters") @RequestParam(required = false) Double minDistance,
+            @Parameter(description = "Filter by maximum distance in meters") @RequestParam(required = false) Double maxDistance,
+            @Parameter(description = "Filter by surface type") @RequestParam(required = false) String surfaceType) {
         
         Page<RouteResponse> routes;
         
-        if (search != null && !search.trim().isEmpty()) {
+        // Check if any advanced filters are applied
+        boolean hasAdvancedFilters = difficulty != null || routeType != null || 
+                                    minDistance != null || maxDistance != null || 
+                                    surfaceType != null;
+        
+        if (hasAdvancedFilters) {
+            // Use the combined filters method
+            Boolean isPublicParam = publicOnly ? true : null;
+            routes = routeService.getRoutesWithFilters(
+                difficulty, 
+                routeType, 
+                minDistance, 
+                maxDistance, 
+                surfaceType, 
+                isPublicParam, 
+                pageable
+            );
+        } else if (search != null && !search.trim().isEmpty()) {
             routes = routeService.searchRoutes(search.trim(), pageable);
         } else if (publicOnly) {
             routes = routeService.getPublicRoutes(pageable);

@@ -37,6 +37,7 @@ public class RouteService {
         route.setRouteType(request.getRouteType());
         route.setIsPublic(request.getIsPublic());
         route.setMetadata(request.getMetadata());
+        route.setDifficulty(request.getDifficulty());
         
         // Create route points
         List<RoutePoint> points = IntStream.range(0, request.getPoints().size())
@@ -125,6 +126,41 @@ public class RouteService {
                 .map(this::convertToResponse);
     }
     
+    @Transactional(readOnly = true)
+    public Page<RouteResponse> findByDifficulty(Integer difficulty, Pageable pageable) {
+        return routeRepository.findByDifficulty(difficulty, pageable)
+                .map(this::convertToResponse);
+    }
+    
+    @Transactional(readOnly = true)
+    public Page<RouteResponse> getRoutesWithFilters(
+            Integer difficulty,
+            Route.RouteType routeType,
+            Double minDistance,
+            Double maxDistance,
+            String surfaceType,
+            Boolean isPublic,
+            Pageable pageable) {
+        
+        // Convert surfaceType string to proper format for LIKE query if needed
+        String surfaceTypeParam = null;
+        if (surfaceType != null && !surfaceType.isEmpty()) {
+            surfaceTypeParam = "\"surface\":\"" + surfaceType + "\"";
+        }
+        
+        Page<Route> routes = routeRepository.findWithFilters(
+            difficulty,
+            routeType,
+            minDistance,
+            maxDistance,
+            surfaceTypeParam,
+            isPublic,
+            pageable
+        );
+        
+        return routes.map(this::convertToResponse);
+    }
+    
     public RouteResponse updateRoute(UUID id, RouteCreateRequest request) {
         Route route = routeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Route not found"));
@@ -134,6 +170,7 @@ public class RouteService {
         route.setRouteType(request.getRouteType());
         route.setIsPublic(request.getIsPublic());
         route.setMetadata(request.getMetadata());
+        route.setDifficulty(request.getDifficulty());
         
         // Clear existing points and add new ones
         route.getRoutePoints().clear();
@@ -186,6 +223,7 @@ public class RouteService {
         response.setEstimatedDuration(route.getEstimatedDuration());
         response.setRouteType(route.getRouteType());
         response.setIsPublic(route.getIsPublic());
+        response.setDifficulty(route.getDifficulty());
         response.setMetadata(route.getMetadata());
         response.setPointCount(route.getRoutePoints().size());
         

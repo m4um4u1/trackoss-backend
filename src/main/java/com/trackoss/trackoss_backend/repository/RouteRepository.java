@@ -37,6 +37,27 @@ public interface RouteRepository extends JpaRepository<Route, UUID> {
     Page<Route> findByDistanceRange(@Param("minDistance") Double minDistance,
                                    @Param("maxDistance") Double maxDistance,
                                    Pageable pageable);
+                                   
+    // Find routes by difficulty
+    Page<Route> findByDifficulty(Integer difficulty, Pageable pageable);
+    
+    // Find routes with combined filters
+    @Query("SELECT r FROM Route r WHERE " +
+           "(:difficulty IS NULL OR r.difficulty = :difficulty) AND " +
+           "(:routeType IS NULL OR r.routeType = :routeType) AND " +
+           "(:minDistance IS NULL OR r.totalDistance >= :minDistance) AND " +
+           "(:maxDistance IS NULL OR r.totalDistance <= :maxDistance) AND " +
+           "(:surfaceType IS NULL OR r.metadata LIKE %:surfaceType%) AND " +
+           "(:isPublic IS NULL OR r.isPublic = :isPublic)")
+    Page<Route> findWithFilters(
+        @Param("difficulty") Integer difficulty,
+        @Param("routeType") Route.RouteType routeType,
+        @Param("minDistance") Double minDistance,
+        @Param("maxDistance") Double maxDistance,
+        @Param("surfaceType") String surfaceType,
+        @Param("isPublic") Boolean isPublic,
+        Pageable pageable
+    );
 
     // Find routes near a location using spatial search
     // This is a simplified implementation using bounding box approximation

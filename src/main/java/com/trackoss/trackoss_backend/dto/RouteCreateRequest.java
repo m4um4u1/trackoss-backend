@@ -31,6 +31,9 @@ public class RouteCreateRequest {
     @Schema(description = "Whether the route is publicly visible", example = "true")
     private Boolean isPublic = false;
     
+    @Schema(description = "Difficulty level (1-5)", example = "3")
+    private Integer difficulty;
+    
     @NotEmpty(message = "Route must have at least one point")
     @Valid
     @Schema(description = "List of route points (track points and waypoints)", required = true)
