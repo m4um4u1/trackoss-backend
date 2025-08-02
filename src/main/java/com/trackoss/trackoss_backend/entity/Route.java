@@ -59,6 +59,9 @@ public class Route {
     @Column(columnDefinition = "TEXT")
     private String metadata;
     
+    @Column(name = "difficulty")
+    private Integer difficulty;
+    
     @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @OrderBy("sequenceOrder ASC")
     @JsonManagedReference
@@ -85,5 +88,52 @@ public class Route {
     public void removeRoutePoint(RoutePoint point) {
         routePoints.remove(point);
         point.setRoute(null);
+    }
+    
+    // Custom setter for metadata to ensure difficulty synchronization
+    public void setMetadata(String metadata) {
+        this.metadata = metadata;
+        
+        // Extract difficulty from metadata if present
+        if (metadata != null && !metadata.isEmpty()) {
+            try {
+                com.fasterxml.jackson.databind.JsonNode metadataJson = new com.fasterxml.jackson.databind.ObjectMapper().readTree(metadata);
+                if (metadataJson.has("difficulty")) {
+                    this.difficulty = metadataJson.get("difficulty").asInt();
+                }
+            } catch (Exception e) {
+                // Log error but continue
+                System.err.println("Failed to extract difficulty from metadata: " + e.getMessage());
+            }
+        }
+    }
+    
+    // Custom setter for difficulty to ensure metadata synchronization
+    public void setDifficulty(Integer difficulty) {
+        this.difficulty = difficulty;
+        
+        // Update difficulty in metadata if metadata exists
+        if (this.metadata != null && !this.metadata.isEmpty()) {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                com.fasterxml.jackson.databind.JsonNode metadataJson = mapper.readTree(this.metadata);
+                ((com.fasterxml.jackson.databind.node.ObjectNode) metadataJson).put("difficulty", difficulty);
+                this.metadata = mapper.writeValueAsString(metadataJson);
+            } catch (Exception e) {
+                // Log error but continue
+                System.err.println("Failed to update difficulty in metadata: " + e.getMessage());
+            }
+        } else {
+            // Create new metadata with difficulty
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                com.fasterxml.jackson.databind.node.ObjectNode metadataJson = mapper.createObjectNode();
+                metadataJson.put("difficulty", difficulty);
+                this.metadata = mapper.writeValueAsString(metadataJson);
+            } catch (Exception e) {
+                // Log error but continue
+                System.err.println("Failed to create metadata with difficulty: " + e.getMessage());
+            }
+        }
     }
 }
