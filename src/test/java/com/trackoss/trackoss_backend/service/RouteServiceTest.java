@@ -49,6 +49,8 @@ class RouteServiceTest {
         testRoute.setTotalDistance(10000.0);
         testRoute.setTotalElevationGain(500.0);
         testRoute.setEstimatedDuration(3600L);
+        testRoute.setDifficulty(3);
+        testRoute.setMetadata("{\"surface\":\"asphalt\",\"difficulty\":3}");
 
         // Create test route points
         RoutePoint point1 = new RoutePoint();

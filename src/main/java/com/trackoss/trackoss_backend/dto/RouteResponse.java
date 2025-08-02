@@ -45,6 +45,9 @@ public class RouteResponse {
 
     @Schema(description = "Whether the route is publicly visible", example = "true")
     private Boolean isPublic;
+    
+    @Schema(description = "Difficulty level (1-5)", example = "3")
+    private Integer difficulty;
 
     @Schema(description = "Additional metadata as JSON string",
             example = "{\"surface\": \"asphalt\", \"difficulty\": 3, \"traffic\": \"low\"}")

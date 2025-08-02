@@ -2,9 +2,9 @@ name: Unit Tests
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -13,56 +13,60 @@ jobs:
       contents: read
       checks: write
       pull-requests: write
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
-        
-    - name: Make gradlew executable
-      run: chmod +x gradlew
-      
-    - name: Run unit tests
-      run: ./gradlew test --no-daemon
-      
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: |
-          build/reports/tests/test/
-          build/test-results/test/
-        retention-days: 7
-        
-    - name: Test Report Summary
-      if: always()
-      run: |
-        if [ -f build/test-results/test/TEST-*.xml ]; then
-          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "Tests completed. Check the uploaded artifacts for detailed results." >> $GITHUB_STEP_SUMMARY
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-          # Count test results
-          TOTAL_TESTS=$(grep -o 'tests="[0-9]*"' build/test-results/test/TEST-*.xml | grep -o '[0-9]*' | awk '{sum += $1} END {print sum}')
-          FAILED_TESTS=$(grep -o 'failures="[0-9]*"' build/test-results/test/TEST-*.xml | grep -o '[0-9]*' | awk '{sum += $1} END {print sum}')
-          SKIPPED_TESTS=$(grep -o 'skipped="[0-9]*"' build/test-results/test/TEST-*.xml | grep -o '[0-9]*' | awk '{sum += $1} END {print sum}')
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
 
-          echo "- Total Tests: ${TOTAL_TESTS:-0}" >> $GITHUB_STEP_SUMMARY
-          echo "- Failed Tests: ${FAILED_TESTS:-0}" >> $GITHUB_STEP_SUMMARY
-          echo "- Skipped Tests: ${SKIPPED_TESTS:-0}" >> $GITHUB_STEP_SUMMARY
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
-          if [ "${FAILED_TESTS:-0}" -gt 0 ]; then
-            echo "❌ Some tests failed!" >> $GITHUB_STEP_SUMMARY
-            exit 1
+      - name: Run unit tests
+        run: ./gradlew test --no-daemon
+        env:
+          # These environment variables are needed for Testcontainers
+          TESTCONTAINERS_RYUK_DISABLED: true
+          _JAVA_OPTIONS: "-Djava.security.egd=file:/dev/./urandom"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            build/reports/tests/test/
+            build/test-results/test/
+          retention-days: 7
+
+      - name: Test Report Summary
+        if: always()
+        run: |
+          if [ -f build/test-results/test/TEST-*.xml ]; then
+            echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+            echo "Tests completed. Check the uploaded artifacts for detailed results." >> $GITHUB_STEP_SUMMARY
+
+            # Count test results
+            TOTAL_TESTS=$(grep -o 'tests="[0-9]*"' build/test-results/test/TEST-*.xml | grep -o '[0-9]*' | awk '{sum += $1} END {print sum}')
+            FAILED_TESTS=$(grep -o 'failures="[0-9]*"' build/test-results/test/TEST-*.xml | grep -o '[0-9]*' | awk '{sum += $1} END {print sum}')
+            SKIPPED_TESTS=$(grep -o 'skipped="[0-9]*"' build/test-results/test/TEST-*.xml | grep -o '[0-9]*' | awk '{sum += $1} END {print sum}')
+
+            echo "- Total Tests: ${TOTAL_TESTS:-0}" >> $GITHUB_STEP_SUMMARY
+            echo "- Failed Tests: ${FAILED_TESTS:-0}" >> $GITHUB_STEP_SUMMARY
+            echo "- Skipped Tests: ${SKIPPED_TESTS:-0}" >> $GITHUB_STEP_SUMMARY
+
+            if [ "${FAILED_TESTS:-0}" -gt 0 ]; then
+              echo "❌ Some tests failed!" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            else
+              echo "✅ All tests passed!" >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "✅ All tests passed!" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ No test results found" >> $GITHUB_STEP_SUMMARY
           fi
-        else
-          echo "⚠️ No test results found" >> $GITHUB_STEP_SUMMARY
-        fi
