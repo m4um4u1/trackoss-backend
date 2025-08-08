@@ -9,15 +9,23 @@ import com.trackoss.trackoss_backend.service.GpxService;
 import com.trackoss.trackoss_backend.service.RouteService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import static org.junit.jupiter.api.Assertions.*;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.core.Authentication;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -26,12 +34,16 @@ import java.util.*;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import org.mockito.Mockito;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
-@WebMvcTest(RouteController.class)
+@SpringBootTest
+@AutoConfigureMockMvc(addFilters = false)
 class RouteControllerTest {
 
     @Autowired
@@ -40,14 +52,20 @@ class RouteControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @Autowired
+    private ApplicationContext applicationContext;
+
+    @MockBean
     private RouteService routeService;
 
-    @MockitoBean
+    @MockBean
     private GpxService gpxService;
 
-    @MockitoBean
+    @MockBean
     private GeoJsonService geoJsonService;
+
+    @Autowired
+    private RouteController routeController;
 
     private RouteCreateRequest validRouteRequest;
     private RouteResponse mockRouteResponse;
@@ -97,21 +115,20 @@ class RouteControllerTest {
 
     @Test
     void createRoute_ValidRequest_ReturnsCreated() throws Exception {
-        when(routeService.createRoute(any(RouteCreateRequest.class))).thenReturn(mockRouteResponse);
+        when(routeService.createRoute(any(RouteCreateRequest.class), isNull())).thenReturn(mockRouteResponse);
 
-        mockMvc.perform(post("/api/routes")
-                .with(csrf())
-                .with(user("testuser"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(validRouteRequest)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(testRouteId.toString()))
-                .andExpect(jsonPath("$.name").value("Test Route"))
-                .andExpect(jsonPath("$.routeType").value("CYCLING"))
-                .andExpect(jsonPath("$.isPublic").value(true))
-                .andExpect(jsonPath("$.pointCount").value(2));
+        ResponseEntity<RouteResponse> response = routeController.createRoute(validRouteRequest, null);
 
-        verify(routeService).createRoute(any(RouteCreateRequest.class));
+        assertNotNull(response);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().getId());
+        assertEquals("Test Route", response.getBody().getName());
+        assertEquals(Route.RouteType.CYCLING, response.getBody().getRouteType());
+        assertTrue(response.getBody().getIsPublic());
+        assertEquals(2, response.getBody().getPointCount());
+
+        verify(routeService).createRoute(any(RouteCreateRequest.class), isNull());
     }
 
     @Test

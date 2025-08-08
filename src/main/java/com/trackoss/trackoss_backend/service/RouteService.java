@@ -1,14 +1,18 @@
+
 package com.trackoss.trackoss_backend.service;
 
 import com.trackoss.trackoss_backend.dto.RouteCreateRequest;
 import com.trackoss.trackoss_backend.dto.RouteResponse;
 import com.trackoss.trackoss_backend.entity.Route;
 import com.trackoss.trackoss_backend.entity.RoutePoint;
+import com.trackoss.trackoss_backend.entity.User;
 import com.trackoss.trackoss_backend.repository.RouteRepository;
+import com.trackoss.trackoss_backend.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,13 +26,17 @@ import java.util.stream.IntStream;
 @Slf4j
 @Transactional
 public class RouteService {
-    
+
     private final RouteRepository routeRepository;
     private final RouteStatisticsService routeStatisticsService;
-    
+
     public RouteResponse createRoute(RouteCreateRequest request) {
+        return createRoute(request, null);
+    }
+
+    public RouteResponse createRoute(RouteCreateRequest request, Authentication authentication) {
         log.info("Creating new route: {}", request.getName());
-        
+
         Route route = new Route();
         route.setId(UUID.randomUUID()); // Set UUID manually
         route.setName(request.getName());
@@ -36,12 +44,21 @@ public class RouteService {
         route.setRouteType(request.getRouteType());
         route.setIsPublic(request.getIsPublic());
         route.setMetadata(request.getMetadata());
-        // Only set difficulty if it's provided in the request
-        // If difficulty is null, the setMetadata method will extract it from metadata if present
-        if (request.getDifficulty() != null) {
-            route.setDifficulty(request.getDifficulty());
+
+        // Set userId from authentication if available
+        if (authentication != null && authentication.isAuthenticated()) {
+            UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            User user = userPrincipal.getUser();
+            route.setUserId(user.getId().toString());
+            log.info("Setting route userId to: {}", user.getId());
         }
-        
+
+        // Set difficulty from request only if provided, otherwise keep metadata-extracted value
+        Integer requestDifficulty = request.getDifficulty();
+        if (requestDifficulty != null) {
+            route.setDifficulty(requestDifficulty);
+        }
+
         // Create route points
         List<RoutePoint> points = IntStream.range(0, request.getPoints().size())
                 .mapToObj(i -> {
@@ -59,9 +76,9 @@ public class RouteService {
                     return point;
                 })
                 .toList();
-        
+
         route.setRoutePoints(points);
-        
+
         // Set pre-calculated statistics if provided, otherwise calculate them
         if (request.getTotalDistance() != null) {
             route.setTotalDistance(request.getTotalDistance());
@@ -72,16 +89,16 @@ public class RouteService {
         if (request.getEstimatedDuration() != null) {
             route.setEstimatedDuration(request.getEstimatedDuration());
         }
-        
+
         // Calculate missing statistics
         routeStatisticsService.calculateMissingStatistics(route);
-        
+
         Route savedRoute = routeRepository.save(route);
         log.info("Route created with ID: {}", savedRoute.getId());
-        
+
         return convertToResponse(savedRoute);
     }
-    
+
     @Transactional(readOnly = true)
     public Optional<RouteResponse> getRoute(UUID id) {
         return routeRepository.findById(id)
@@ -98,25 +115,25 @@ public class RouteService {
                     return route;
                 });
     }
-    
+
     @Transactional(readOnly = true)
     public Page<RouteResponse> getAllRoutes(Pageable pageable) {
         return routeRepository.findAll(pageable)
                 .map(this::convertToResponse);
     }
-    
+
     @Transactional(readOnly = true)
     public Page<RouteResponse> getPublicRoutes(Pageable pageable) {
         return routeRepository.findByIsPublicTrue(pageable)
                 .map(this::convertToResponse);
     }
-    
+
     @Transactional(readOnly = true)
     public Page<RouteResponse> getUserRoutes(String userId, Pageable pageable) {
         return routeRepository.findByUserId(userId, pageable)
                 .map(this::convertToResponse);
     }
-    
+
     @Transactional(readOnly = true)
     public Page<RouteResponse> searchRoutes(String name, Pageable pageable) {
         return routeRepository.findByNameContainingIgnoreCase(name, pageable)
@@ -128,13 +145,13 @@ public class RouteService {
         return routeRepository.findNearbyRoutes(latitude, longitude, radiusKm, pageable)
                 .map(this::convertToResponse);
     }
-    
+
     @Transactional(readOnly = true)
     public Page<RouteResponse> findByDifficulty(Integer difficulty, Pageable pageable) {
         return routeRepository.findByDifficulty(difficulty, pageable)
                 .map(this::convertToResponse);
     }
-    
+
     @Transactional(readOnly = true)
     public Page<RouteResponse> getRoutesWithFilters(
             Integer difficulty,
@@ -144,13 +161,13 @@ public class RouteService {
             String surfaceType,
             Boolean isPublic,
             Pageable pageable) {
-        
+
         // Convert surfaceType string to proper format for LIKE query if needed
         String surfaceTypeParam = null;
         if (surfaceType != null && !surfaceType.isEmpty()) {
             surfaceTypeParam = "\"surface\":\"" + surfaceType + "\"";
         }
-        
+
         Page<Route> routes = routeRepository.findWithFilters(
             difficulty,
             routeType,
@@ -160,28 +177,31 @@ public class RouteService {
             isPublic,
             pageable
         );
-        
+
         return routes.map(this::convertToResponse);
     }
-    
+
     public RouteResponse updateRoute(UUID id, RouteCreateRequest request) {
         Route route = routeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Route not found"));
-        
+
         route.setName(request.getName());
         route.setDescription(request.getDescription());
         route.setRouteType(request.getRouteType());
         route.setIsPublic(request.getIsPublic());
+
+        // Set metadata first to allow difficulty extraction from metadata
         route.setMetadata(request.getMetadata());
-        // Only set difficulty if it's provided in the request
-        // If difficulty is null, the setMetadata method will extract it from metadata if present
-        if (request.getDifficulty() != null) {
-            route.setDifficulty(request.getDifficulty());
+
+        // Set difficulty from request only if provided, otherwise keep metadata-extracted value
+        Integer requestDifficulty = request.getDifficulty();
+        if (requestDifficulty != null) {
+            route.setDifficulty(requestDifficulty);
         }
-        
+
         // Clear existing points and add new ones
         route.getRoutePoints().clear();
-        
+
         List<RoutePoint> points = IntStream.range(0, request.getPoints().size())
                 .mapToObj(i -> {
                     RouteCreateRequest.RoutePointRequest pointReq = request.getPoints().get(i);
@@ -198,18 +218,18 @@ public class RouteService {
                     return point;
                 })
                 .toList();
-        
+
         route.getRoutePoints().addAll(points);
-        
+
         // Recalculate route statistics
         routeStatisticsService.calculateRouteStatistics(route);
-        
+
         Route savedRoute = routeRepository.save(route);
         log.info("Route updated: {}", savedRoute.getId());
-        
+
         return convertToResponse(savedRoute);
     }
-    
+
     public void deleteRoute(UUID id) {
         if (!routeRepository.existsById(id)) {
             throw new RuntimeException("Route not found");
@@ -217,7 +237,7 @@ public class RouteService {
         routeRepository.deleteById(id);
         log.info("Route deleted: {}", id);
     }
-    
+
     private RouteResponse convertToResponse(Route route) {
         RouteResponse response = new RouteResponse();
         response.setId(route.getId());
@@ -234,7 +254,7 @@ public class RouteService {
         response.setDifficulty(route.getDifficulty());
         response.setMetadata(route.getMetadata());
         response.setPointCount(route.getRoutePoints().size());
-        
+
         List<RouteResponse.RoutePointResponse> pointResponses = route.getRoutePoints().stream()
                 .map(point -> {
                     RouteResponse.RoutePointResponse pointResponse = new RouteResponse.RoutePointResponse();
@@ -250,7 +270,7 @@ public class RouteService {
                     return pointResponse;
                 })
                 .toList();
-        
+
         response.setPoints(pointResponses);
         return response;
     }
