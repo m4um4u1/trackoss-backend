@@ -1,3 +1,4 @@
+
 package com.trackoss.trackoss_backend.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,17 +11,19 @@ import com.trackoss.trackoss_backend.service.RouteService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -31,7 +34,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(RouteController.class)
+@SpringBootTest
+@AutoConfigureMockMvc(addFilters = false)
 class RouteControllerDifficultyTest {
 
     @Autowired
@@ -40,13 +44,13 @@ class RouteControllerDifficultyTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private RouteService routeService;
 
-    @MockitoBean
+    @MockBean
     private GpxService gpxService;
 
-    @MockitoBean
+    @MockBean
     private GeoJsonService geoJsonService;
 
     private RouteCreateRequest validRouteRequest;
@@ -157,12 +161,12 @@ class RouteControllerDifficultyTest {
         String surfaceType = "asphalt";
         Boolean publicOnly = true;
         Pageable pageable = PageRequest.of(0, 20);
-        
+
         List<RouteResponse> routes = Collections.singletonList(mockRouteResponse);
         Page<RouteResponse> routePage = new PageImpl<>(routes, pageable, 1);
 
         when(routeService.getRoutesWithFilters(
-                eq(difficulty), eq(routeType), eq(minDistance), eq(maxDistance), 
+                eq(difficulty), eq(routeType), eq(minDistance), eq(maxDistance),
                 eq(surfaceType), eq(publicOnly), any(Pageable.class)))
                 .thenReturn(routePage);
 
@@ -182,14 +186,14 @@ class RouteControllerDifficultyTest {
                 .andExpect(jsonPath("$.totalElements", is(1)));
 
         verify(routeService).getRoutesWithFilters(
-                eq(difficulty), eq(routeType), eq(minDistance), eq(maxDistance), 
+                eq(difficulty), eq(routeType), eq(minDistance), eq(maxDistance),
                 eq(surfaceType), eq(publicOnly), any(Pageable.class));
     }
 
     @Test
     void createRoute_WithDifficulty_CreatesRouteWithDifficulty() throws Exception {
         // Arrange
-        when(routeService.createRoute(any(RouteCreateRequest.class))).thenReturn(mockRouteResponse);
+        when(routeService.createRoute(any(RouteCreateRequest.class), any())).thenReturn(mockRouteResponse);
 
         // Act & Assert
         mockMvc.perform(post("/api/routes")
@@ -200,9 +204,9 @@ class RouteControllerDifficultyTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.difficulty", is(3)));
 
-        verify(routeService).createRoute(argThat(request -> 
-            request.getDifficulty() != null && 
-            request.getDifficulty().equals(3)));
+        verify(routeService).createRoute(argThat(request ->
+            request.getDifficulty() != null &&
+            request.getDifficulty().equals(3)), any());
     }
 
     @Test
@@ -223,8 +227,8 @@ class RouteControllerDifficultyTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.difficulty", is(4)));
 
-        verify(routeService).updateRoute(eq(testRouteId), argThat(request -> 
-            request.getDifficulty() != null && 
+        verify(routeService).updateRoute(eq(testRouteId), argThat(request ->
+            request.getDifficulty() != null &&
             request.getDifficulty().equals(4)));
     }
 
@@ -233,8 +237,8 @@ class RouteControllerDifficultyTest {
         // Arrange
         validRouteRequest.setDifficulty(null);
         mockRouteResponse.setDifficulty(null);
-        
-        when(routeService.createRoute(any(RouteCreateRequest.class))).thenReturn(mockRouteResponse);
+
+        when(routeService.createRoute(any(RouteCreateRequest.class), any())).thenReturn(mockRouteResponse);
 
         // Act & Assert
         mockMvc.perform(post("/api/routes")
@@ -245,8 +249,8 @@ class RouteControllerDifficultyTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.difficulty").doesNotExist());
 
-        verify(routeService).createRoute(argThat(request -> 
-            request.getDifficulty() == null));
+        verify(routeService).createRoute(argThat(request ->
+            request.getDifficulty() == null), any());
     }
 
     @Test

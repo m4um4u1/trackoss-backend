@@ -100,6 +100,8 @@ public class Route {
                 com.fasterxml.jackson.databind.JsonNode metadataJson = new com.fasterxml.jackson.databind.ObjectMapper().readTree(metadata);
                 if (metadataJson.has("difficulty")) {
                     this.difficulty = metadataJson.get("difficulty").asInt();
+                    System.out.println("Extracted difficulty from metadata: " + this.difficulty);
+                    System.out.println("Route difficulty field set to: " + this.difficulty);
                 }
             } catch (Exception e) {
                 // Log error but continue
@@ -110,7 +112,10 @@ public class Route {
     
     // Custom setter for difficulty to ensure metadata synchronization
     public void setDifficulty(Integer difficulty) {
+
+        System.out.println("setDifficulty called with value: " + difficulty);
         this.difficulty = difficulty;
+
         
         // Update difficulty in metadata if metadata exists
         if (this.metadata != null && !this.metadata.isEmpty()) {

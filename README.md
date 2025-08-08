@@ -9,7 +9,8 @@ A Spring Boot backend service for managing cycling routes with GPS track data, f
 - **GeoJSON Export**: Export routes as GeoJSON for web mapping applications
 - **Spatial Queries**: Find routes by location using PostGIS spatial capabilities
 - **Route Statistics**: Automatic calculation of distance, elevation gain, and duration
-- **Map Tile Proxy**: Built-in proxy for map tile services
+- **User Management**: Authentication and authorization for route ownership
+- **Route Sharing**: Public and private route visibility options
 - **REST API**: Full OpenAPI/Swagger documentation with pagination and search
 
 ## Technology Stack
@@ -44,11 +45,11 @@ docker compose up -d
 git clone https://github.com/m4um4u1/trackoss-backend.git
 cd trackoss-backend
 
-# Start the full application stack (database + backend)
+# Start the application stack
 docker-compose up -d
 
-# Or build and start with logs
-docker-compose up --build
+# Or use the simplified setup with all services
+docker-compose -f docker-compose.simple.yaml up -d
 ```
 
 The application starts on `http://localhost:8080`
@@ -69,9 +70,10 @@ The application starts on `http://localhost:8080`
 - `GET /api/routes/{id}/export/gpx` - Export as GPX
 - `GET /api/routes/{id}/export/geojson` - Export as GeoJSON
 
-### Map Tiles
-- `GET /api/map-proxy/{styleId}/style.json` - Proxy map style
-- `GET /api/map-proxy/{styleId}/{z}/{x}/{y}.{format}` - Proxy map tiles
+### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/refresh` - Refresh JWT token
 
 ## Configuration
 
@@ -83,9 +85,9 @@ spring.datasource.url=jdbc:postgresql://localhost:5432/trackossdb
 spring.datasource.username=trackoss_user
 spring.datasource.password=trackoss_password
 
-# Map Tile Proxy (optional)
-maptile.service.target-base-url=https://api.maptiler.com/maps
-maptile.service.api.key=${MAPTILE_SERVICE_API_KEY:dummy_key}
+# JWT Configuration
+app.jwt.secret=${JWT_SECRET:your-secret-key}
+app.jwt.expiration=86400000
 ```
 
 ## Docker
@@ -107,13 +109,25 @@ docker run -p 8080:8080 \
 
 ### Compose Files
 - **`compose.yaml`**: Development dependencies (PostgreSQL only)
-- **`docker-compose.yaml`**: Full deployment (PostgreSQL + Backend)
+- **`docker-compose.yaml`**: Standard deployment (PostgreSQL + Backend)
+- **`docker-compose.simple.yaml`**: Full stack with TileServer and Valhalla
 
 ### Environment Variables
-- `MAPTILE_SERVICE_API_KEY`: API key for map tile service (optional)
 - `SPRING_DATASOURCE_URL`: Database connection URL
 - `SPRING_DATASOURCE_USERNAME`: Database username
 - `SPRING_DATASOURCE_PASSWORD`: Database password
+- `JWT_SECRET`: Secret key for JWT token generation
+- `APP_JWT_EXPIRATION`: JWT token expiration time in milliseconds
+
+## Architecture
+
+TrackOSS follows best practices with clean separation of concerns:
+
+- **Backend**: Focuses solely on route management, storage, and user data
+- **TileServer**: Serves map tiles directly to frontend (with CORS)
+- **Valhalla**: Provides routing directly to frontend (with CORS)
+- **Frontend**: Connects directly to all services
+
 
 ## Development
 

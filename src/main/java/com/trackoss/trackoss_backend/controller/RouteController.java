@@ -26,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.core.Authentication;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -37,7 +38,6 @@ import java.util.UUID;
 @RequestMapping("/api/routes")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "*") // Configure appropriately for production
 @Tag(name = "Routes", description = "Cycling route management API")
 public class RouteController {
     
@@ -59,9 +59,12 @@ public class RouteController {
     })
     public ResponseEntity<RouteResponse> createRoute(
             @Parameter(description = "Route creation request with points and metadata", required = true)
-            @Valid @RequestBody RouteCreateRequest request) {
+            @Valid @RequestBody RouteCreateRequest request,
+            Authentication authentication) {
         log.info("Creating new route: {}", request.getName());
-        RouteResponse response = routeService.createRoute(request);
+        log.info("Route service: {}", routeService);
+        RouteResponse response = routeService.createRoute(request, authentication);
+        log.info("Response from service: {}", response);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     

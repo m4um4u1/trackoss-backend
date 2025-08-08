@@ -1,6 +1,6 @@
 # Multi-stage build for TrackOSS Backend
 # Stage 1: Build the application
-FROM docker.io/openjdk:17-jdk-slim AS builder
+FROM docker.io/openjdk:21-jdk-slim AS builder
 
 # Set working directory
 WORKDIR /app
@@ -20,7 +20,7 @@ COPY src/ src/
 RUN ./gradlew build -x test --no-daemon
 
 # Stage 2: Create the runtime image
-FROM docker.io/eclipse-temurin:17-jre AS runtime
+FROM docker.io/eclipse-temurin:21-jre AS runtime
 
 # Install curl for health checks
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
