@@ -29,10 +29,14 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/trackossdb
       - SPRING_DATASOURCE_USERNAME=trackoss_user
       - SPRING_DATASOURCE_PASSWORD=trackoss_password
-      
-      # Optional: Map tile service API key
-      - MAPTILE_SERVICE_API_KEY=dummy_key
-      
+
+      # JWT Configuration
+      - APP_JWT_SECRET=your_base64_encoded_secret_key_here
+      - APP_JWT_EXPIRATION=86400000  # 24 hours in milliseconds
+
+      # CORS Configuration
+      - APP_CORS_ALLOWED_ORIGINS=http://localhost:4200,https://yourdomain.com
+
       # Production optimizations
       - SPRING_JPA_SHOW_SQL=false
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB=INFO
@@ -46,7 +50,7 @@ services:
       - trackoss-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/routes"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
