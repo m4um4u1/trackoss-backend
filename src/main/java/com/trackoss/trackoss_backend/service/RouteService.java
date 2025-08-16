@@ -29,6 +29,7 @@ public class RouteService {
 
     private final RouteRepository routeRepository;
     private final RouteStatisticsService routeStatisticsService;
+    private final RouteMetadataService routeMetadataService;
 
     public RouteResponse createRoute(RouteCreateRequest request) {
         return createRoute(request, null);
@@ -92,6 +93,9 @@ public class RouteService {
 
         // Calculate missing statistics
         routeStatisticsService.calculateMissingStatistics(route);
+        
+        // Enhance metadata with road type information
+        routeMetadataService.enhanceRouteMetadata(route);
 
         Route savedRoute = routeRepository.save(route);
         log.info("Route created with ID: {}", savedRoute.getId());
@@ -223,6 +227,9 @@ public class RouteService {
 
         // Recalculate route statistics
         routeStatisticsService.calculateRouteStatistics(route);
+        
+        // Re-enhance metadata with road type information
+        routeMetadataService.enhanceRouteMetadata(route);
 
         Route savedRoute = routeRepository.save(route);
         log.info("Route updated: {}", savedRoute.getId());

@@ -43,6 +43,8 @@ public class SecurityConfig {
                         // Public endpoints - only these are accessible without authentication
                         .requestMatchers("/api/auth/**").permitAll() // Authentication endpoints
                         .requestMatchers("/api/routes/public").permitAll() // Public routes endpoint only
+                        .requestMatchers("/api/routes/metadata/analyze").permitAll() // Route metadata analysis for live display
+                        .requestMatchers("/api/v1/routes/metadata/analyze").permitAll() // Route metadata analysis (v1 endpoint)
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // API documentation
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll() // Health checks
                         .requestMatchers("/actuator/info").permitAll() // Application info

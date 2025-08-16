@@ -1,0 +1,36 @@
+{
+  "name": "Test Route with Road Types",
+  "description": "Testing road type detection",
+  "routeType": "ROAD_CYCLING",
+  "isPublic": false,
+  "points": [
+    {
+      "latitude": 47.376,
+      "longitude": 8.54,
+      "elevation": 408.0,
+      "pointType": "START_POINT",
+      "description": "Start in urban area"
+    },
+    {
+      "latitude": 47.378,
+      "longitude": 8.542,
+      "elevation": 410.0,
+      "pointType": "TRACK_POINT",
+      "description": "Residential neighborhood"
+    },
+    {
+      "latitude": 47.38,
+      "longitude": 8.545,
+      "elevation": 415.0,
+      "pointType": "TRACK_POINT",
+      "description": "Park trail"
+    },
+    {
+      "latitude": 47.385,
+      "longitude": 8.55,
+      "elevation": 425.0,
+      "pointType": "END_POINT",
+      "description": "End on gravel path"
+    }
+  ]
+}
